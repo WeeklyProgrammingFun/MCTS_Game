@@ -16,56 +16,98 @@ GameTreeNode: move made, Score, Comment
 using System.Data;
 using System.Diagnostics;
 using System.Reflection.Metadata;
+using MCTS_Game;
 using static System.Console;
 using P = Player;
 
 
 
+#if true
+var b1 = new RandomBot();
+var b2 = new SmartBot();
+Fight(b1,b2, 3);
+return;
+#endif
 
-long nodes = new();
+#if true
+var se = new Searcher();
 var ttt3 = new GameStateTTT(3);
-Search(ttt3);
-WriteLine($"nodes {nodes}");
+se.Search(ttt3);
+WriteLine($"nodes {se.nodes}");
+#endif
 
 
-void Search(GameStateTTT state, int depth = 0)
+
+void Fight(IBot bob, IBot don, int size)
 {
-    nodes++;
-    var moves = state.GenMoves();
+    var (bobWins, donWins, draws) = (0, 0, 0);
 
-    var e = state.Evaluate();
-    if (e == Outcome.Player1 || e == Outcome.Player2)
+    for (var game = 0; game < 10; ++game)
     {
-        state.Dump();
-        Console.WriteLine();
-        return;
+        Console.WriteLine(game);
+        var odd = (game & 1) == 1;
+        var g = new GameStateTTT(size);
+        while (true)
+        {
+            if (odd)
+            {
+                PlayOne(bob, g);
+                if (g.Evaluate() != Outcome.Unknown) break;
+                PlayOne(don, g);
+            }
+            else
+            {
+                PlayOne(don, g);
+                if (g.Evaluate() != Outcome.Unknown) break;
+                PlayOne(bob, g);
+            }
+            if (g.Evaluate() != Outcome.Unknown) break;
+        }
+
+        var outcome = g.Evaluate();
+        if (!odd && outcome == Outcome.Player1)
+            outcome = Outcome.Player2;
+        else if (!odd && outcome == Outcome.Player2)
+            outcome = Outcome.Player1;
+
+        if (outcome == Outcome.Draw) ++draws; 
+        else if (outcome == Outcome.Player1) ++bobWins;
+        else if (outcome == Outcome.Player2) ++donWins;
+        else throw new Exception("Yo");
     }
 
-    if (e == Outcome.Draw)
+    Console.WriteLine($"Bob wins {bobWins}, don wins {donWins}, draws {draws}");
+
+    void PlayOne(IBot b, GameStateTTT g) => g.DoMove(b.FindMove(g));
+}
+
+
+interface IBot
+{
+    // get the next move for this state
+    Move FindMove(GameStateTTT state);
+}
+
+class SmartBot : IBot
+{
+    // get the next move for this state
+    public Move FindMove(GameStateTTT state)
     {
-        Console.BackgroundColor = ConsoleColor.Cyan;
-        Console.ForegroundColor = ConsoleColor.Black;
-        state.Dump();
-        Console.BackgroundColor = ConsoleColor.Black;
-        Console.ForegroundColor = ConsoleColor.Gray;
-
-        Console.WriteLine();
-        return;
-
+        var se = new Searcher();
+        se.Search(state, 0);
+        return se.bestMoves[0].Move;
     }
+}
 
-    // depth first search
-    foreach (var m in moves)
+class RandomBot : IBot
+{
+    private Random r = new Random(1234);
+
+    // get the next move for this state
+    public Move FindMove(GameStateTTT state)
     {
-        state.DoMove(m);
-        
-        // do some work? scoring?
-
-        Search(state, depth + 1);
-
-        // do some work? scoring?
-
-        state.UndoMove(m);
+        var moves = state.GenMoves();
+        return moves[r.Next(moves.Count)];
     }
 }
 
@@ -91,6 +133,44 @@ record Move(Player WhoMoved, Sq From, Sq To);
 
 class GameStateTTT
 {
+    // positive good for player1, negative for player 2
+    public int ScorePosition()
+    {
+        var e = Evaluate();
+        if (e == Outcome.Player1) return int.MaxValue;
+        if (e == Outcome.Player2) return int.MinValue;
+        if (e == Outcome.Draw) return 0;
+
+        int sign = ToMove == P.Player1 ? 1 : -1;
+        
+        int score = 0;
+
+        for ( var i =0; i < gameSize; ++i)
+        for (var j = 0; j < gameSize; ++j)
+        {
+            if (grid[i, j] == ToMove)
+                score += sign * SquareScore(i,j);
+            else if (grid[i, j] != Player.None)
+                score += SquareScore(i, j);
+        }
+
+        return score;
+
+        int SquareScore(int i, int j)
+        {
+            int corner = 10;
+            int center = 15;
+            int other = 2;
+            int s = gameSize - 1;
+            if (i == 0 && j == 0) return corner;
+            if (i == s && j == 0) return corner;
+            if (i == 0 && j == s) return corner;
+            if (i == s && j == s) return corner;
+            if (i == gameSize/2 && j == gameSize / 2) return center;
+            return other;
+        }
+
+    }
 
     public Outcome Evaluate()
     {
@@ -213,7 +293,7 @@ class GameStateTTT
     void NextPlayer()
     {
         if (ToMove == P.Player1) 
-            ToMove = Player.Player2;
+            ToMove = P.Player2;
         else 
             ToMove = P.Player1;
     }
