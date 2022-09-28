@@ -19,17 +19,46 @@ using System.Reflection.Metadata;
 using MCTS_Game;
 using static System.Console;
 using P = Player;
-
+using Lomont.Formats;
 
 
 #if true
+var ttt3 = new GameStateTTT(3);
+//var m = ttt3.GenMoves();
+//Console.WriteLine($"{m.Count}");
+//foreach (var mm in m)
+//    Console.WriteLine(mm);
+
+var se = new Searcher();
+se.Search(ttt3, 0);
+Console.WriteLine($"{se.bestMoves.Count} moves found");
+foreach (var m in se.bestMoves)
+    Console.WriteLine($"  {m}");
+Console.WriteLine(se.bestMoves[0].Move);
+
+//se.Root;
+
+Console.WriteLine("----------------");
+TreeTextFormatter.Format(
+    Console.Out, se.Root,
+    n => n.Children,
+    n => $"{n.Score} {n.Move}",// {n.Move.WhoMoved}",// {n?.Move.From}",
+    TreeTextFormatter.Style.Unicode
+);
+
+return;
+#endif
+
+
+
+#if false
 var b1 = new RandomBot();
 var b2 = new SmartBot();
 Fight(b1,b2, 3);
 return;
 #endif
 
-#if true
+#if false
 var se = new Searcher();
 var ttt3 = new GameStateTTT(3);
 se.Search(ttt3);
@@ -47,6 +76,13 @@ void Fight(IBot bob, IBot don, int size)
         Console.WriteLine(game);
         var odd = (game & 1) == 1;
         var g = new GameStateTTT(size);
+
+        void dm()
+        {
+            var mv = g.GenMoves();
+            Console.WriteLine($"pre moves {mv.Count}");
+        }
+
         while (true)
         {
             if (odd)
@@ -57,7 +93,11 @@ void Fight(IBot bob, IBot don, int size)
             }
             else
             {
+                dm();
+                g.Dump();
+                dm();
                 PlayOne(don, g);
+                dm();
                 if (g.Evaluate() != Outcome.Unknown) break;
                 PlayOne(bob, g);
             }
@@ -78,7 +118,12 @@ void Fight(IBot bob, IBot don, int size)
 
     Console.WriteLine($"Bob wins {bobWins}, don wins {donWins}, draws {draws}");
 
-    void PlayOne(IBot b, GameStateTTT g) => g.DoMove(b.FindMove(g));
+    void PlayOne(IBot b, GameStateTTT g)
+    {
+        var m = b.FindMove(g);
+        Console.WriteLine($"Move {m}");
+        g.DoMove(m);
+    }
 }
 
 
@@ -95,6 +140,9 @@ class SmartBot : IBot
     {
         var se = new Searcher();
         se.Search(state, 0);
+        Console.WriteLine($"{se.bestMoves.Count} moves found");
+        foreach (var m in se.bestMoves)
+            Console.WriteLine($"  {m}");
         return se.bestMoves[0].Move;
     }
 }
@@ -151,7 +199,7 @@ class GameStateTTT
             if (grid[i, j] == ToMove)
                 score += sign * SquareScore(i,j);
             else if (grid[i, j] != Player.None)
-                score += SquareScore(i, j);
+                score -= sign*SquareScore(i, j);
         }
 
         return score;
