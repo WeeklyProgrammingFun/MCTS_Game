@@ -52,8 +52,8 @@ return;
 
 
 #if true
-//var b1 = new RandomBot();
-var b1 = new SmartBot();
+var b1 = new RandomBot();
+//var b1 = new SmartBot();
 //var b2 = new RandomBot();
 var b2 = new SmartBot();
 Fight(b1,b2, 3);
@@ -73,7 +73,7 @@ void Fight(IBot bob, IBot don, int size)
 {
     var (bobWins, donWins, draws) = (0, 0, 0);
 
-    for (var game = 0; game < 1000000000; ++game)
+    for (var game = 0; game < 100; ++game)
     {
         WriteLine();
         WriteLine("---------------------------------");

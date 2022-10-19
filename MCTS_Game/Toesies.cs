@@ -30,12 +30,14 @@ namespace MCTS_Game
 
     class GameStateTTT
     {
+        const int WinScore = 1_000_000;
+
         // positive good for player1, negative for player 2
         public int ScorePosition()
         {
             var e = Evaluate();
-            if (e == Outcome.Player1) return int.MaxValue;
-            if (e == Outcome.Player2) return int.MinValue;
+            if (e == Outcome.Player1) return WinScore;
+            if (e == Outcome.Player2) return -WinScore;
             if (e == Outcome.Draw) return 0;
 
             int sign = ToMove == P.Player1 ? 1 : -1;
