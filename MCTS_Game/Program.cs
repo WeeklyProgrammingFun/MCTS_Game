@@ -52,10 +52,10 @@ return;
 
 
 #if true
-var b1 = new RandomBot();
-//var b1 = new SmartBot();
-var b2 = new RandomBot();
-//var b2 = new SmartBot();
+//var b1 = new RandomBot();
+var b1 = new SmartBot();
+//var b2 = new RandomBot();
+var b2 = new SmartBot();
 Fight(b1,b2, 3);
 return;
 #endif

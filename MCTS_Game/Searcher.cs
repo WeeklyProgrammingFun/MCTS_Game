@@ -16,7 +16,7 @@ namespace MCTS_Game
 
         public bool UseAlphaBeta { get; set; } = false;
 
-        public Move nullMove = new Move(Player.Player1, new Sq(0, 0), new Sq(0, 0));
+        public Move nullMove = new Move(Player.Player1, new Sq(-1, -1), new Sq(-1, -1));
 
         // best sequence from position
         public List<(Move Move, int Score)> bestMoves = new();
@@ -50,7 +50,9 @@ namespace MCTS_Game
                 bestMoves.Clear();
             }
             if (bestMoves.Count <= depth)
-                bestMoves.Add((nullMove, 0));
+            { // first time at depth: set score
+                bestMoves.Add((nullMove, state.ToMove==Player.Player1?int.MinValue:int.MaxValue));
+            }
 
             nodes++;
 
