@@ -18,11 +18,11 @@ using System.Diagnostics;
 using System.Reflection.Metadata;
 using MCTS_Game;
 using static System.Console;
-using P = Player;
+using P = MCTS_Game.Player;
 using Lomont.Formats;
 
 
-#if true
+#if false
 var ttt3 = new GameStateTTT(3);
 //var m = ttt3.GenMoves();
 //Console.WriteLine($"{m.Count}");
@@ -51,9 +51,11 @@ return;
 
 
 
-#if false
+#if true
 var b1 = new RandomBot();
-var b2 = new SmartBot();
+//var b1 = new SmartBot();
+var b2 = new RandomBot();
+//var b2 = new SmartBot();
 Fight(b1,b2, 3);
 return;
 #endif
@@ -71,8 +73,11 @@ void Fight(IBot bob, IBot don, int size)
 {
     var (bobWins, donWins, draws) = (0, 0, 0);
 
-    for (var game = 0; game < 10; ++game)
+    for (var game = 0; game < 1000000000; ++game)
     {
+        WriteLine();
+        WriteLine("---------------------------------");
+
         Console.WriteLine(game);
         var odd = (game & 1) == 1;
         var g = new GameStateTTT(size);
@@ -80,7 +85,7 @@ void Fight(IBot bob, IBot don, int size)
         void dm()
         {
             var mv = g.GenMoves();
-            Console.WriteLine($"pre moves {mv.Count}");
+            //Console.WriteLine($"pre moves {mv.Count}");
         }
 
         while (true)
@@ -94,7 +99,7 @@ void Fight(IBot bob, IBot don, int size)
             else
             {
                 dm();
-                g.Dump();
+                //g.Dump();
                 dm();
                 PlayOne(don, g);
                 dm();
@@ -121,247 +126,16 @@ void Fight(IBot bob, IBot don, int size)
     void PlayOne(IBot b, GameStateTTT g)
     {
         var m = b.FindMove(g);
-        Console.WriteLine($"Move {m}");
+        Console.WriteLine($"Applying move {m}");
         g.DoMove(m);
     }
 }
 
 
-interface IBot
-{
-    // get the next move for this state
-    Move FindMove(GameStateTTT state);
-}
-
-class SmartBot : IBot
-{
-    // get the next move for this state
-    public Move FindMove(GameStateTTT state)
-    {
-        var se = new Searcher();
-        se.Search(state, 0);
-        Console.WriteLine($"{se.bestMoves.Count} moves found");
-        foreach (var m in se.bestMoves)
-            Console.WriteLine($"  {m}");
-        return se.bestMoves[0].Move;
-    }
-}
-
-class RandomBot : IBot
-{
-    private Random r = new Random(1234);
-
-    // get the next move for this state
-    public Move FindMove(GameStateTTT state)
-    {
-        var moves = state.GenMoves();
-        return moves[r.Next(moves.Count)];
-    }
-}
 
 
 
-enum Player
-{
-    None = 0,
-    Player1 = 1,
-    Player2 = -1
-}
 
-enum Outcome
-{
-    Unknown = int.MaxValue,
-    Draw = 0,
-    Player1 = 1,
-    Player2 = -1
-}
-
-record Sq(int X, int Y);
-record Move(Player WhoMoved, Sq From, Sq To);
-
-class GameStateTTT
-{
-    // positive good for player1, negative for player 2
-    public int ScorePosition()
-    {
-        var e = Evaluate();
-        if (e == Outcome.Player1) return int.MaxValue;
-        if (e == Outcome.Player2) return int.MinValue;
-        if (e == Outcome.Draw) return 0;
-
-        int sign = ToMove == P.Player1 ? 1 : -1;
-        
-        int score = 0;
-
-        for ( var i =0; i < gameSize; ++i)
-        for (var j = 0; j < gameSize; ++j)
-        {
-            if (grid[i, j] == ToMove)
-                score += sign * SquareScore(i,j);
-            else if (grid[i, j] != Player.None)
-                score -= sign*SquareScore(i, j);
-        }
-
-        return score;
-
-        int SquareScore(int i, int j)
-        {
-            int corner = 10;
-            int center = 15;
-            int other = 2;
-            int s = gameSize - 1;
-            if (i == 0 && j == 0) return corner;
-            if (i == s && j == 0) return corner;
-            if (i == 0 && j == s) return corner;
-            if (i == s && j == s) return corner;
-            if (i == gameSize/2 && j == gameSize / 2) return center;
-            return other;
-        }
-
-    }
-
-    public Outcome Evaluate()
-    {
-        if (CheckWin(Player.Player1))
-            return Outcome.Player1;
-        else if (CheckWin(Player.Player2))
-            return Outcome.Player2;
-        else if (GenMoves().Count == 0)
-            return Outcome.Draw;
-        else return Outcome.Unknown;
-    }
-
-    private int winLength => gameSize;
-    bool CheckWin(Player player)
-    {
-        Trace.Assert(winLength == gameSize); // todo- fix logic
-        int d1 = 0;
-        int d2 = 0;
-        for (var i = 0; i < gameSize; ++i)
-        {
-            int horiz = 0;
-            int vert = 0;
-            for (var j = 0; j < gameSize; ++j)
-            { // todo
-                horiz += grid[i, j] == grid[i, 0] ? 1 : 0;
-                vert += grid[j, i] == grid[0, i] ? 1 : 0;
-            }
-
-            if (horiz == winLength && grid[i,0] == player) 
-                return true;
-            if (vert == winLength && grid[0,i] == player)
-                return true;
-
-            d1 += grid[i, i] == grid[0, 0] ? 1 : 0;
-            d2 += grid[i, gameSize-1-i] == grid[0, gameSize-1] ? 1 : 0;
-
-        }
-        if (d1 == winLength && grid[0, 0] == player)
-            return true;
-        if (d2 == winLength && grid[0, gameSize-1] == player)
-            return true;
-
-        return false;
-    }
-
-    public GameStateTTT(int size)
-    {
-        gameSize = size;
-        grid = new Player[gameSize, gameSize];
-    }
-
-    public int gameSize = 3;
-
-    // +1 player 1, -1 player 2, 0 = empty 
-    public Player[,] grid;
-
-    public Player ToMove = Player.Player1;
-
-    char PlayerToTxt(Player p)
-        => p switch
-        {
-            P.None => ' ',
-            P.Player1 => 'X',
-            P.Player2 => 'Y',
-            _=> throw  new NotImplementedException("BOO")
-        };
-
-    public void Dump()
-    {
-        
-        void A()=>WriteLine($"+{new string('-', (gameSize-1) * 2)}-+");
-        A();
-
-        for (var i = 0; i < gameSize; ++i)
-        {
-            
-            Write("|");
-            for (var j = 0; j < gameSize; ++j)
-            {
-                var g = PlayerToTxt(grid[i, j]);
-
-                Write($"{g}|");
-
-            }
-            WriteLine();
-            A();
-        }
-    }
-
-    public List<Move> GenMoves()
-    {
-        var moves = new List<Move>();
-        for (var i = 0; i < gameSize; ++i)
-        for (var j = 0; j < gameSize; ++j)
-        {
-            if (grid[i, j] == Player.None)
-                moves.Add(new(
-                    WhoMoved: ToMove, 
-                    From:new(0, 0), 
-                    To:new Sq(i, j))
-                );
-
-        }
-
-        return moves;
-    }
-
-    public void DoMove(Move move)
-    {
-        if (!IsLegal(move))
-            throw new Exception("DEAD");
-
-        var to = move.To;
-        grid[to.X, to.Y] = ToMove;
-
-        NextPlayer();
-
-    }
-
-    void NextPlayer()
-    {
-        if (ToMove == P.Player1) 
-            ToMove = P.Player2;
-        else 
-            ToMove = P.Player1;
-    }
-
-    public void UndoMove(Move move)
-    {
-        // todo - check legal somehow?
-        var to = move.To;
-        grid[to.X, to.Y] = Player.None;
-        NextPlayer();
-    }
-
-    bool IsLegal(Move move)
-    {
-        var to = move.To;
-        return grid[to.X, to.Y] == Player.None;
-    }
-
-
-}
 
 #if false
 class GameStateOthello
