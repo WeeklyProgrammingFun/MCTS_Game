@@ -32,6 +32,25 @@ namespace MCTS_Game
     {
         const int WinScore = 1_000_000;
 
+        public ulong Hash()
+        { // 9 cells, each 0,1,2, so
+            ulong hash = 0;
+
+            for (var i = 0; i < gameSize; ++i)
+            for (var j = 0; j < gameSize; ++j)
+            {
+                var c = grid[i, j] switch
+                {
+                    Player.None    => 0U,
+                    Player.Player1 => 1U,
+                    Player.Player2 => 2U,
+                    _ => throw new NotImplementedException()
+                };
+                hash = hash * 3 + c;
+            }
+            return hash;
+        }
+
         // positive good for player1, negative for player 2
         public int ScorePosition()
         {

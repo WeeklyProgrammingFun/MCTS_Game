@@ -52,8 +52,8 @@ return;
 
 
 #if true
-var b1 = new RandomBot();
-//var b1 = new SmartBot();
+//var b1 = new RandomBot();
+var b1 = new SmartBot();
 //var b2 = new RandomBot();
 var b2 = new SmartBot();
 Fight(b1,b2, 3);
@@ -69,9 +69,9 @@ WriteLine($"nodes {se.nodes}");
 
 
 
-void Fight(IBot bob, IBot don, int size)
+void Fight(IBot alice, IBot bob, int size)
 {
-    var (bobWins, donWins, draws) = (0, 0, 0);
+    var (aliceWins, bobWins, draws) = (0, 0, 0);
 
     for (var game = 0; game < 100; ++game)
     {
@@ -92,36 +92,37 @@ void Fight(IBot bob, IBot don, int size)
         {
             if (odd)
             {
-                PlayOne(bob, g);
+                PlayOne(alice, g);
                 if (g.Evaluate() != Outcome.Unknown) break;
-                PlayOne(don, g);
+                PlayOne(bob, g);
             }
             else
             {
                 dm();
                 //g.Dump();
                 dm();
-                PlayOne(don, g);
+                PlayOne(bob, g);
                 dm();
                 if (g.Evaluate() != Outcome.Unknown) break;
-                PlayOne(bob, g);
+                PlayOne(alice, g);
             }
             if (g.Evaluate() != Outcome.Unknown) break;
         }
 
         var outcome = g.Evaluate();
+
         if (!odd && outcome == Outcome.Player1)
             outcome = Outcome.Player2;
         else if (!odd && outcome == Outcome.Player2)
             outcome = Outcome.Player1;
 
         if (outcome == Outcome.Draw) ++draws; 
-        else if (outcome == Outcome.Player1) ++bobWins;
-        else if (outcome == Outcome.Player2) ++donWins;
+        else if (outcome == Outcome.Player1) ++aliceWins;
+        else if (outcome == Outcome.Player2) ++bobWins;
         else throw new Exception("Yo");
     }
 
-    Console.WriteLine($"Bob wins {bobWins}, don wins {donWins}, draws {draws}");
+    Console.WriteLine($"Alice wins {aliceWins}, bob wins {bobWins}, draws {draws}");
 
     void PlayOne(IBot b, GameStateTTT g)
     {

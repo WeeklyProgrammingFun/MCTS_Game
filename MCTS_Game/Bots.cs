@@ -13,6 +13,7 @@ namespace MCTS_Game
         Move FindMove(GameStateTTT state);
     }
 
+
     class SmartBot : IBot
     {
         Searcher se = new Searcher();
@@ -20,9 +21,10 @@ namespace MCTS_Game
         // get the next move for this state
         public Move FindMove(GameStateTTT state)
         {
-            se.UseAlphaBeta = true;
+            se.UseAlphaBeta = true;//true;
+            se.UseHashTable = false;//true;
             se.Search(state, 0);
-            //Console.WriteLine($"{se.bestMoves.Count} best variation found, to play {state.ToMove}");
+            Console.WriteLine($"{se.bestMoves.Count} best variation found, to play {state.ToMove} score {se.bestMoves[0].Score}");
             //foreach (var m in se.bestMoves)
             //    Console.WriteLine($"  {m}");
             Console.WriteLine($"{se.nodes}"); // 155280

@@ -13,8 +13,10 @@ namespace MCTS_Game
     internal class Searcher
     {
         public long nodes = 0;
+        public long hashCollisions = 0;
 
         public bool UseAlphaBeta { get; set; } = false;
+        public bool UseHashTable { get; set; } = false;
 
         public Move nullMove = new Move(Player.Player1, new Sq(-1, -1), new Sq(-1, -1));
 
@@ -32,8 +34,33 @@ namespace MCTS_Game
 
         public TreeNode Root;
 
-        // return best score at position
+        private Dictionary<ulong, (Move move, int score)> hashes = new();
+        void Hash(GameStateTTT state, int score, Move move)
+        {
+            if (!UseHashTable) return;
 
+            var h = state.Hash();
+            if (!hashes.ContainsKey(h))
+                hashes.Add(h,(move,score));
+        }
+
+        (bool hasHash, Move hashMove, int hashScore) GetHash(GameStateTTT state)
+        {
+            if (UseHashTable)
+            {
+                var h = state.Hash();
+                if (hashes.ContainsKey(h))
+                {
+                    var (hashMove, hashScore) = hashes[h];
+                    return (true, hashMove, hashScore);
+                }
+            }
+
+            return (false, nullMove, -12345);
+        }
+
+
+        // return best score at position
         // depth - depth in search tree
         public int Search(
             GameStateTTT state, 
@@ -43,6 +70,7 @@ namespace MCTS_Game
             int beta  = int.MaxValue   // + infinity
             )
         {
+
             if (depth == 0)
             {
                 Root = new();
@@ -54,16 +82,25 @@ namespace MCTS_Game
                 bestMoves.Add((nullMove, state.ToMove==Player.Player1?int.MinValue:int.MaxValue));
             }
 
+            var (hasHash, hashMove, hashScore) = GetHash(state);
+            if (hasHash)
+            {
+                hashCollisions++;
+                bestMoves[depth] = (hashMove, hashScore);
+                return hashScore; // seen best state
+            }
+
+
             nodes++;
 
             // exits
-            if (depth > 4)
-            {
+            //if (depth > 4)
+            //{
                 //state.Dump();
                 //Console.WriteLine(state.ScorePosition());
                 // todo
-                return state.ScorePosition();
-            }
+            //    return state.ScorePosition();
+            //}
 
 
             var e = state.Evaluate();
@@ -71,7 +108,9 @@ namespace MCTS_Game
             {
                 //state.Dump();
                 //Console.WriteLine();
-                return state.ScorePosition();
+                var sc = state.ScorePosition();
+                Hash(state,sc, null);
+                return sc;
             }
 
             if (e == Outcome.Draw)
@@ -83,7 +122,9 @@ namespace MCTS_Game
                 Console.ForegroundColor = ConsoleColor.Gray;
 
                 //Console.WriteLine();
-                return state.ScorePosition();
+                var sc = state.ScorePosition();
+                Hash(state, sc, null);
+                return sc;
             }
 
             var moves = state.GenMoves();
@@ -152,6 +193,7 @@ namespace MCTS_Game
             else
                 parent.Score = parent.Children.Select(c => c.Score).Min();
 
+            Hash(state,parent.Score, null);
             return parent.Score; // bestMoves[depth].Score;
         }
 
